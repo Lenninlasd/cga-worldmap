@@ -71,12 +71,18 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
             ]
         });
         this.searchStore.on('load', function() {
+            console.log('onLoad searchStore', this.searchStore);
+
+            this.findLayerById(this.searchStore);
+
             this.updateControls();
+
             if (this.dataCart) {
                 this.dataCart.reselect();
             }
             this.fireEvent('load', this);
             var rows = this.table.getView().getRows();
+
             $.each(rows, function(index, row){
                 var timeout = null;
                 $(row).on('mouseover', function(){
@@ -139,13 +145,12 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
     },
 
     _search: function(params) {
-
        /* search with given parameters */
         this.disableControls();
         this.pagerLabel.setText(this.loadingText);
 
         this.searchStore.load({params: params});
-
+        console.log('searchStore', this.searchStore);
         this.updatePermalink(params);
     },
 
@@ -203,29 +208,26 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
         }
     },
 
-    updateQuery: function() {
-        /* called when main search query changes */
-        GeoNode.queryTerms.q = this.queryInput.getValue();
+    findLayerById: function(searchStore) {
+        var layersIdsArray = searchStore.data.items.map(function(layer){
+            return layer.data.id
+        });
+        console.log("layersIdsArray-- new", layersIdsArray);
+    },
 
+    cleanQueryTerm: function() {
         // Remove any layer_originator filter if there
         for(var i=0;i<GeoNode.queryTerms.fq.length;i++){
             if(GeoNode.queryTerms.fq[i].indexOf('layer_originator') > -1){
                 GeoNode.queryTerms.fq.splice(i, 1);
             }
         };
-        if (this.originatorInput.getValue() !== ''){
-            GeoNode.queryTerms.fq.push('layer_originator:*' + this.originatorInput.getValue() + '*');
-        }
 
         // Remove any DataType filter if there
         for(var i=0;i<GeoNode.queryTerms.fq.length;i++){
             if(GeoNode.queryTerms.fq[i].indexOf('service_type') > -1){
                 GeoNode.queryTerms.fq.splice(i, 1);
             }
-        };
-        var datatypes = this.dataTypeInput.getValue();
-        if(datatypes !== ''){
-            GeoNode.queryTerms.fq.push(datatypes);
         };
 
         // Remove any date filter if there
@@ -234,6 +236,28 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
                 GeoNode.queryTerms.fq.splice(i, 1);
             }
         };
+    },
+
+    updateQuery: function() {
+        /* called when main search query changes */
+        GeoNode.queryTerms.q = this.queryInput.getValue();
+
+        this.cleanQueryTerm();
+
+        if (this.originatorInput.getValue() !== ''){
+            GeoNode.queryTerms.fq.push('layer_originator:*' + this.originatorInput.getValue() + '*');
+        }
+
+        var datatypes = this.dataTypeInput.getValue();
+
+        if(datatypes !== ''){
+            if (datatypes === 'service_type:"Free:URmain"') {
+                datatypes = 'service_type:"Hypermap:WorldMap"';
+                //http://worldmap.harvard.edu/solr/hypermap/select?fq=id:(70354%20OR%2070350)&indent=on&q=*:*&wt=json
+            }
+            GeoNode.queryTerms.fq.push(datatypes);
+        };
+
         var dates = this.dateInput.getDateValues();
         if(dates != '[* TO *]'){
             GeoNode.queryTerms.fq.push("layer_date:" + this.dateInput.getDateValues());
@@ -247,7 +271,6 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
 
         // now trigger the heatmap update
         this.heatmap.fireEvent('fireSearch', false);
-
 
         this.doSearch();
     },
@@ -409,7 +432,7 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
                 this.updateQuery();
             }
         }, this);
-
+//
         this.dataTypeInput = new Ext.form.ComboBox({
             id: 'dataTypes',
             mode: 'local',
@@ -427,7 +450,8 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
                     ['service_type:"OGC:WMTS"', 'WMTS'],
                     ['service_type:"OGC:WMS"', 'WMS'],
                     ['service_type:"ESRI:ArcGIS:ImageServer"', 'ESRI Image'],
-                    ['service_type:"ESRI:ArcGIS:MapServer"', 'ESRI Map']
+                    ['service_type:"ESRI:ArcGIS:MapServer"', 'ESRI Map'],
+                    ['service_type:"Free:URmain"', 'Feature Search']
                 ]
             }),
             valueField: 'value',
