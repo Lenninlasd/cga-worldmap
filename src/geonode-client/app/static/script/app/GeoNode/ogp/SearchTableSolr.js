@@ -215,34 +215,32 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
         console.log("layersIdsArray-- new", layersIdsArray);
     },
 
-    cleanQueryTerm: function() {
-        // Remove any layer_originator filter if there
-        for(var i=0;i<GeoNode.queryTerms.fq.length;i++){
-            if(GeoNode.queryTerms.fq[i].indexOf('layer_originator') > -1){
-                GeoNode.queryTerms.fq.splice(i, 1);
+    cleanQueryTerms: function() {
+        var fqTerms = GeoNode.queryTerms.fq;
+        for(var i=0;i<fqTerms.length;i++){
+            // Remove any layer_originator filter if there
+            if(fqTerms[i].indexOf('layer_originator') > -1){
+                fqTerms.splice(i, 1);
             }
-        };
-
-        // Remove any DataType filter if there
-        for(var i=0;i<GeoNode.queryTerms.fq.length;i++){
-            if(GeoNode.queryTerms.fq[i].indexOf('service_type') > -1){
-                GeoNode.queryTerms.fq.splice(i, 1);
+            // Remove any DataType filter if there
+            else if(fqTerms[i].indexOf('service_type') > -1){
+                fqTerms.splice(i, 1);
             }
-        };
-
-        // Remove any date filter if there
-        for(var i=0;i<GeoNode.queryTerms.fq.length;i++){
-            if(GeoNode.queryTerms.fq[i].indexOf('layer_date') > -1){
-                GeoNode.queryTerms.fq.splice(i, 1);
+            // Remove any date filter if there
+            else if(fqTerms[i].indexOf('layer_date') > -1){
+                fqTerms.splice(i, 1);
             }
-        };
+            else if(fqTerms[i].indexOf('id')){
+                fqTerms.splice(i, 1);
+            }
+        }
     },
 
     updateQuery: function() {
         /* called when main search query changes */
         GeoNode.queryTerms.q = this.queryInput.getValue();
 
-        this.cleanQueryTerm();
+        this.cleanQueryTerms();
 
         if (this.originatorInput.getValue() !== ''){
             GeoNode.queryTerms.fq.push('layer_originator:*' + this.originatorInput.getValue() + '*');
@@ -253,7 +251,10 @@ GeoNode.SearchTable = Ext.extend(Ext.util.Observable, {
         if(datatypes !== ''){
             if (datatypes === 'service_type:"Free:URmain"') {
                 datatypes = 'service_type:"Hypermap:WorldMap"';
-                //http://worldmap.harvard.edu/solr/hypermap/select?fq=id:(70354%20OR%2070350)&indent=on&q=*:*&wt=json
+
+                var idsArray = ["188012", "188019", "188016", "188013", "185557"];
+                var idsArrayQuery = 'id:(' + idsArray.join(' OR ') + ')';
+                GeoNode.queryTerms.fq.push(idsArrayQuery);
             }
             GeoNode.queryTerms.fq.push(datatypes);
         };
